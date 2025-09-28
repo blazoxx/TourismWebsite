@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, AlertCircle, ExternalLink, ArrowLeft, Download } from 'lucide-react';
 import Link from 'next/link';
-import { getExplorerUrl } from '../utils/smartContract';
+import { getExplorerUrl } from '../../utils/smartContract';
 
 export default function PaymentConfirmationPage({ searchParams }) {
   const [paymentDetails, setPaymentDetails] = useState(null);

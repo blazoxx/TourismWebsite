@@ -1,12 +1,16 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { CheckCircle, AlertCircle, ExternalLink, ArrowLeft, Download } from 'lucide-react';
+import { CheckCircle, AlertCircle, ExternalLink, ArrowLeft, Download, QrCode, Copy, Shield } from 'lucide-react';
 import Link from 'next/link';
-import { getExplorerUrl } from '../../utils/smartContract';
+import QRCode from 'react-qr-code';
+import { getExplorerUrl, generateUniquePaymentId, generateVerificationData } from '../../utils/smartContract';
 
 export default function PaymentConfirmationPage({ searchParams }) {
   const [paymentDetails, setPaymentDetails] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [qrData, setQrData] = useState(null);
+  const [showQR, setShowQR] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
 
   useEffect(() => {
     // In a real app, you would fetch payment details from your backend
@@ -22,10 +26,28 @@ export default function PaymentConfirmationPage({ searchParams }) {
       chainId: searchParams?.chainId || localStorage.getItem('lastPaymentChain'),
     };
 
-    setPaymentDetails(details);
+    // Generate unique payment ID and verification data
+    const uniqueIdData = generateUniquePaymentId(details);
+    const enhancedDetails = {
+      ...details,
+      paymentId: uniqueIdData.paymentId,
+      paymentHash: uniqueIdData.hash,
+      verificationTimestamp: uniqueIdData.timestamp
+    };
+
+    setPaymentDetails(enhancedDetails);
+    
+    // Generate QR code data for verification
+    const verificationData = generateVerificationData(enhancedDetails);
+    setQrData(JSON.stringify(verificationData, null, 2));
+    
     setLoading(false);
 
-    // Clear localStorage after loading
+    // Store the unique payment ID for future reference
+    localStorage.setItem('lastPaymentId', uniqueIdData.paymentId);
+    localStorage.setItem('lastPaymentVerification', JSON.stringify(verificationData));
+
+    // Clear other localStorage items after loading
     localStorage.removeItem('lastPaymentTx');
     localStorage.removeItem('lastPaymentAmount');
     localStorage.removeItem('lastPaymentMethod');
@@ -37,12 +59,15 @@ export default function PaymentConfirmationPage({ searchParams }) {
     if (!paymentDetails) return;
 
     const receiptData = {
+      paymentId: paymentDetails.paymentId,
       bookingId: paymentDetails.bookingId,
       transactionHash: paymentDetails.transactionHash,
       amount: paymentDetails.amount,
       method: paymentDetails.method,
       timestamp: paymentDetails.timestamp,
       customerEmail: paymentDetails.customerEmail,
+      verificationUrl: `${window.location.origin}/verify-payment?id=${paymentDetails.paymentId}`,
+      qrData: qrData
     };
 
     const dataStr = JSON.stringify(receiptData, null, 2);
@@ -54,6 +79,18 @@ export default function PaymentConfirmationPage({ searchParams }) {
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
+  };
+
+  const copyPaymentId = async () => {
+    if (!paymentDetails?.paymentId) return;
+    
+    try {
+      await navigator.clipboard.writeText(paymentDetails.paymentId);
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy payment ID:', err);
+    }
   };
 
   if (loading) {
@@ -120,6 +157,29 @@ export default function PaymentConfirmationPage({ searchParams }) {
             <h3 className="text-xl font-semibold text-gray-900 mb-6">Payment Details</h3>
             
             <div className="space-y-4">
+              {/* Unique Payment ID - Most Important */}
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Shield className="text-blue-600" size={20} />
+                    <span className="font-semibold text-blue-900">Unique Payment ID</span>
+                  </div>
+                  <button
+                    onClick={copyPaymentId}
+                    className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    <Copy size={16} />
+                    {copiedId ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="font-mono text-lg font-bold text-blue-800 bg-white px-3 py-2 rounded border">
+                  {paymentDetails.paymentId}
+                </div>
+                <p className="text-xs text-blue-700 mt-2">
+                  Keep this ID safe! Use it for verification, customer support, or refund requests.
+                </p>
+              </div>
+
               <div className="flex justify-between py-3 border-b border-gray-100">
                 <span className="text-gray-600">Booking ID:</span>
                 <span className="font-mono font-medium">{paymentDetails.bookingId}</span>
@@ -173,6 +233,38 @@ export default function PaymentConfirmationPage({ searchParams }) {
               )}
             </div>
             
+            {/* QR Code Section */}
+            <div className="mt-8 border-t pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <QrCode className="text-blue-600" size={20} />
+                  Payment Verification QR Code
+                </h4>
+                <button
+                  onClick={() => setShowQR(!showQR)}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  {showQR ? 'Hide QR' : 'Show QR'}
+                </button>
+              </div>
+              
+              {showQR && qrData && (
+                <div className="bg-gray-50 rounded-lg p-6 text-center">
+                  <div className="inline-block bg-white p-4 rounded-lg shadow-sm">
+                    <QRCode
+                      value={qrData}
+                      size={200}
+                      style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    />
+                  </div>
+                  <div className="mt-4 text-sm text-gray-600">
+                    <p className="font-medium">Scan to verify payment authenticity</p>
+                    <p className="mt-1">Contains: Payment ID, Transaction Details & Verification URL</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
             {/* Actions */}
             <div className="flex gap-4 mt-8">
               <button
@@ -195,17 +287,26 @@ export default function PaymentConfirmationPage({ searchParams }) {
 
         {/* Security Notice */}
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="font-semibold text-gray-900 mb-3">🔒 Security Notice</h3>
+          <h3 className="font-semibold text-gray-900 mb-3">🔒 Security & Verification</h3>
           <div className="space-y-2 text-sm text-gray-600">
             <p>✓ Your payment information is encrypted and secure</p>
             <p>✓ {paymentDetails?.method === 'blockchain' ? 'Transaction recorded on blockchain' : 'PCI DSS compliant processing'}</p>
             <p>✓ No sensitive payment data is stored on our servers</p>
+            <p>✓ Unique Payment ID generated with SHA-256 cryptographic hash</p>
+            <p>✓ QR code contains verification data for payment authenticity</p>
           </div>
           
           <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
             <p className="text-sm text-yellow-800">
-              <strong>Important:</strong> Save this page or download the receipt for your records. 
-              You will need the booking ID for any future reference.
+              <strong>Important:</strong> Save your unique Payment ID ({paymentDetails?.paymentId}) and this page or download the receipt. 
+              You will need the Payment ID for verification, customer support, and any future reference.
+            </p>
+          </div>
+          
+          <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Verification:</strong> Anyone can verify your payment authenticity using the QR code or 
+              by visiting our verification page with your unique Payment ID.
             </p>
           </div>
         </div>

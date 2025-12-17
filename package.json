@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:legacy": "next dev",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint"
@@ -19,10 +20,12 @@
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.542.0",
     "next": "15.5.2",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.63.0",
     "react-icons": "^5.5.0",
+    "react-qr-code": "^2.0.18",
     "react-simple-maps": "^3.0.0",
     "recharts": "^3.1.2",
     "web3": "^4.16.0",

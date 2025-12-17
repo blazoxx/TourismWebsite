@@ -27,12 +27,11 @@ export default function TourismDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
 
   useEffect(() => {
-    // 👉 later replace this with API call
     const randomNumber = (min, max) =>
       Math.floor(Math.random() * (max - min + 1)) + min;
 
     const sampleData = {
-      overallRating: 3.6, // ⭐ this can come from backend later
+      overallRating: 3.6,
       stats: {
         totalSignups: randomNumber(5000, 15000),
         onlineUsers: randomNumber(100, 800),
@@ -98,7 +97,7 @@ export default function TourismDashboard() {
           </span>
         </h1>
 
-        {/* ⭐ Overall Rating Card */}
+        {/* Overall Rating Card */}
         <div className="flex justify-center mb-10">
           <Card className="w-full md:w-1/3 bg-green-500 text-white p-6 rounded-lg shadow-md">
             <h2 className="text-lg font-semibold mb-2">Overall Rating</h2>

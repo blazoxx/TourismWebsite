@@ -22,8 +22,11 @@ const montserrat = Montserrat({
 export const metadata = {
   title: "Jharkhand Tourism",
   description: "Explore the beautiful state of Jharkhand",
-    icons: {
-    icon: "/images/logo.png", 
+  icons: {
+    icon: [
+      { url: "/images/favicon.png", type: "image/png" },
+      // { url: "/images/newlogo.png", type: "image/png", sizes: "32x32" }
+    ],
   },
 };
 

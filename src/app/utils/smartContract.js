@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import CryptoJS from 'crypto-js';
 
 // Smart contract ABI for payment processing
 export const PAYMENT_CONTRACT_ABI = [
@@ -229,3 +230,89 @@ export const processSimplePayment = async (provider, signer, toAddress, amount) 
 };
 
 export default PaymentContract;
+
+// Unique Purchase ID Generation and Verification System
+export const generateUniquePaymentId = (transactionDetails) => {
+  const {
+    transactionHash,
+    amount,
+    customerEmail,
+    timestamp,
+    bookingId,
+    method
+  } = transactionDetails;
+
+  // Create a base string from transaction details
+  const baseString = `${transactionHash || 'manual'}-${amount}-${customerEmail}-${timestamp}-${bookingId}-${method}`;
+  
+  // Generate a SHA256 hash for security
+  const hash = CryptoJS.SHA256(baseString).toString();
+  
+  // Create a unique payment ID with format: JHP-YYYYMMDD-XXXXXXXXXXXX
+  const date = new Date(timestamp);
+  const dateString = date.getFullYear().toString() + 
+                    (date.getMonth() + 1).toString().padStart(2, '0') + 
+                    date.getDate().toString().padStart(2, '0');
+  
+  // Use first 12 characters of hash for uniqueness
+  const uniqueId = `JHP-${dateString}-${hash.substring(0, 12).toUpperCase()}`;
+  
+  return {
+    paymentId: uniqueId,
+    hash: hash,
+    timestamp: timestamp
+  };
+};
+
+export const generateVerificationData = (paymentDetails) => {
+  const {
+    paymentId,
+    transactionHash,
+    amount,
+    customerEmail,
+    bookingId,
+    method,
+    timestamp
+  } = paymentDetails;
+
+  return {
+    id: paymentId,
+    txHash: transactionHash,
+    amount: amount,
+    email: customerEmail,
+    booking: bookingId,
+    method: method,
+    timestamp: timestamp,
+    verified: true,
+    verificationUrl: `${window.location.origin}/verify-payment?id=${paymentId}`
+  };
+};
+
+export const verifyPaymentId = (paymentId, originalDetails) => {
+  try {
+    // Extract components from payment ID
+    const parts = paymentId.split('-');
+    if (parts.length !== 3 || parts[0] !== 'JHP') {
+      return { valid: false, reason: 'Invalid payment ID format' };
+    }
+
+    const dateString = parts[1];
+    const hashPart = parts[2];
+
+    // Reconstruct hash from original details
+    const reconstructedId = generateUniquePaymentId(originalDetails);
+    
+    // Compare hash parts
+    if (reconstructedId.paymentId === paymentId) {
+      return { 
+        valid: true, 
+        paymentId: paymentId,
+        verifiedAt: new Date().toISOString()
+      };
+    } else {
+      return { valid: false, reason: 'Payment ID verification failed' };
+    }
+  } catch (error) {
+    return { valid: false, reason: 'Error during verification', error: error.message };
+  }
+};

@@ -1,10 +1,8 @@
 "use client";
-import { useRef, useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
 
 export default function VideoSlider() {
-  const videoRef = useRef(null);
-  const [isMuted, setIsMuted] = useState(true);
-  const [animate, setAnimate] = useState(false);
   const [navHeight, setNavHeight] = useState(0);
 
   const categories = useMemo(
@@ -12,31 +10,6 @@ export default function VideoSlider() {
     []
   );
   const [activeIndex, setActiveIndex] = useState(0);
-
-const categoryToVideo = useMemo(
-  () => ({
-    "Jharkhand 360": "https://drive.google.com/uc?export=download&id=1uAYo0bZ6K471icEnnHQH9kgCbda8XzPr",
-    Adventure: "https://drive.google.com/uc?export=download&id=1uAYo0bZ6K471icEnnHQH9kgCbda8XzPr",
-    Nature: "https://drive.google.com/uc?export=download&id=1uAYo0bZ6K471icEnnHQH9kgCbda8XzPr",
-    Wildlife: "https://drive.google.com/uc?export=download&id=1uAYo0bZ6K471icEnnHQH9kgCbda8XzPr",
-    Heritage: "https://drive.google.com/uc?export=download&id=1uAYo0bZ6K471icEnnHQH9kgCbda8XzPr",
-    Spiritual: "https://drive.google.com/uc?export=download&id=1uAYo0bZ6K471icEnnHQH9kgCbda8XzPr",
-  }),
-  []
-);
-
-
-  const currentVideoSrc = categoryToVideo[categories[activeIndex]];
-
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-
-      setAnimate(true);
-      setTimeout(() => setAnimate(false), 300);
-    }
-  };
 
   // Measure fixed navbar height to fit hero to viewport
   useEffect(() => {
@@ -64,23 +37,19 @@ const categoryToVideo = useMemo(
   }, [categories.length]);
 
   const heroStyle = { minHeight: `100vh`, paddingTop: navHeight };
+  const heroVideoSrc = "/videos/jh360.mp4"; // local hero video
 
   return (
     <div className="relative w-full font-sans overflow-hidden" style={heroStyle}>
       {/* Video Background */}
-<video
-  ref={videoRef}
-  key={currentVideoSrc}
-  src={currentVideoSrc}
-  type="video/mp4"
-  autoPlay
-  loop
-  muted={isMuted}
-  playsInline
-  className="absolute top-0 left-0 w-full h-full object-cover z-0"
-/>
-
-
+      <video
+        src={heroVideoSrc}
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute top-0 left-0 w-full h-full object-cover z-0"
+      />
 
       {/* Gradient Overlay */}
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
@@ -132,20 +101,6 @@ const categoryToVideo = useMemo(
           className="p-2 bg-black/40 rounded-full"
         >
           →
-        </button>
-      </div>
-
-      {/* Mute / Unmute Floating Button */}
-      <div className="absolute bottom-24 right-6 z-30">
-        <button
-          id="unmuteBtn"
-          onClick={toggleMute}
-          className={`w-16 h-16 flex items-center justify-center text-3xl rounded-full shadow-lg transition-transform duration-300 ${
-            animate ? "scale-110" : "scale-100"
-          }`}
-          style={{backgroundColor: 'var(--color-secondary)'}}
-        >
-          {isMuted ? "🔇" : "🔊"}
         </button>
       </div>
     </div>
